@@ -30,3 +30,4 @@ Thumbs.db
 # Local generated data can be recreated
 backend/landing/*.jsonl
 !backend/landing/.gitkeep
+.deploy-gh-pages/
