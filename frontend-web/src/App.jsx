@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Beef,
   ChevronDown,
@@ -58,6 +58,55 @@ function useDragVars() {
   return { style: { '--dx': `${offset.x}px`, '--dy': `${offset.y}px` }, startDrag };
 }
 
+function recipeSteps(recipe) {
+  const raw = recipe?.instrucciones || recipe?.instructions || '';
+  if (!raw.trim()) return ['La API no incluyo instrucciones completas para esta receta. Usa los ingredientes listados como base y ajusta la preparacion a tu cocina.'];
+  return raw
+    .replace(/\r/g, '\n')
+    .split(/\n+/)
+    .flatMap((block) => block.split('. '))
+    .map((step) => step.trim())
+    .filter(Boolean)
+    .map((step) => /[.!?]$/.test(step) ? step : `${step}.`)
+    .slice(0, 14);
+}
+
+function RecipeModal({ recipe, onClose }) {
+  const steps = recipeSteps(recipe);
+  const used = recipe.ingredientes_usados || [];
+  const missing = recipe.ingredientes_faltantes || [];
+
+  return (
+    <div className="recipeModalLayer" role="presentation" onMouseDown={onClose}>
+      <section className="recipeModal" role="dialog" aria-modal="true" aria-label={`Paso a paso de ${recipe.titulo}`} onMouseDown={(event) => event.stopPropagation()}>
+        <button className="modalClose" type="button" onClick={onClose} aria-label="Cerrar receta"><X size={20} /></button>
+        {recipe.imagen && <img className="modalHero" src={recipe.imagen} alt={recipe.titulo} />}
+        <div className="modalBody">
+          <p className="eyebrow modalEyebrow">{recipe.fuente || recipe.area || 'receta'}</p>
+          <h2>{recipe.titulo}</h2>
+          <div className="modalStats"><span><MapPin size={14} /> {Math.round(recipe.calificacion || 0)} pts</span><span>{recipe.likes || 0} likes</span>{recipe.categoria && <span>{recipe.categoria}</span>}</div>
+
+          <div className="modalColumns">
+            <div>
+              <h3><Utensils size={16} /> Usa</h3>
+              <div className="modalTags">{used.length ? used.map((item) => <span key={item}>{item}</span>) : <span>Ver pasos</span>}</div>
+            </div>
+            <div>
+              <h3>Te falta</h3>
+              <div className="modalTags warning">{missing.length ? missing.map((item) => <span key={item}>{item}</span>) : <span>Nada importante</span>}</div>
+            </div>
+          </div>
+
+          {recipe.utensilio_faltante && <p className="modalWarning">{recipe.utensilio_faltante}</p>}
+
+          <h3 className="stepsTitle">Paso a paso</h3>
+          <ol className="recipeSteps">{steps.map((step, index) => <li key={`${index}-${step.slice(0, 16)}`}>{step}</li>)}</ol>
+          {recipe.url && <a className="sourceLink" href={recipe.url} target="_blank" rel="noreferrer">Abrir fuente original</a>}
+        </div>
+      </section>
+    </div>
+  );
+}
 export default function App() {
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_POINTS[0]);
   const [mealIndex, setMealIndex] = useState(mealByCurrentHour());
@@ -72,6 +121,7 @@ export default function App() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
   const ingredientDrag = useDragVars();
   const countryDrag = useDragVars();
   const recipeDrag = useDragVars();
@@ -111,7 +161,14 @@ export default function App() {
   const removeIngredient = (ingredient) => setSelectedIngredients((current) => current.filter((item) => item !== ingredient));
   const toggleTool = (tool) => setSelectedTools((current) => current.includes(tool) ? current.filter((item) => item !== tool) : [...current, tool]);
   const sceneStyle = { '--sky': meal.sky, '--glow': meal.glow, '--darkness': meal.darkness };
-
+  useEffect(() => {
+    if (!selectedRecipe) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setSelectedRecipe(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedRecipe]);
   return (
     <main className="app" style={sceneStyle}>
       <section className="heroPanel">
@@ -143,8 +200,10 @@ export default function App() {
       <section className={recipesOpen ? 'recipePanel open' : 'recipePanel'} style={recipeDrag.style}>
         <div className="panelTitle dragHandle" onMouseDown={recipeDrag.startDrag} onTouchStart={recipeDrag.startDrag}><div><p className="eyebrow">{selectedCountry.cuisine || 'sin filtro de país'}</p><h2>{meal.label} para {selectedCountry.label.toLowerCase()}</h2></div><div className="titleTools"><GripVertical size={22} /><button className="panelAction" onClick={() => setRecipesOpen(false)} aria-label="Ocultar recetas"><ChevronRight size={18} /></button></div></div>
         {loading && <p className="muted">Buscando recetas...</p>}{error && <p className="error">{error}</p>}
-        <div className="cards">{recipes.map((recipe) => <article className="recipeCard" key={recipe.id}>{recipe.imagen && <img src={recipe.imagen} alt={recipe.titulo} />}<div className="recipeBody"><h3>{recipe.titulo}</h3><p><Utensils size={14} /> Usa: {(recipe.ingredientes_usados || []).join(', ') || ingredients.join(', ')}</p>{(recipe.ingredientes_faltantes || []).length > 0 && <p className="missing">Te falta: {recipe.ingredientes_faltantes.join(', ')}</p>}{recipe.utensilio_faltante && <p className="missing">{recipe.utensilio_faltante}</p>}<div className="score"><MapPin size={14} /> {Math.round(recipe.calificacion || 0)} pts · {recipe.likes || 0} likes</div></div></article>)}</div>
+        <div className="cards">{recipes.map((recipe) => <button type="button" className="recipeCard" key={recipe.id} onClick={() => setSelectedRecipe(recipe)} aria-label={`Abrir paso a paso de ${recipe.titulo}`}>{recipe.imagen && <img src={recipe.imagen} alt={recipe.titulo} />}<div className="recipeBody"><h3>{recipe.titulo}</h3><p><Utensils size={14} /> Usa: {(recipe.ingredientes_usados || []).join(', ') || ingredients.join(', ')}</p>{(recipe.ingredientes_faltantes || []).length > 0 && <p className="missing">Te falta: {recipe.ingredientes_faltantes.join(', ')}</p>}{recipe.utensilio_faltante && <p className="missing">{recipe.utensilio_faltante}</p>}<div className="score"><MapPin size={14} /> {Math.round(recipe.calificacion || 0)} pts · {recipe.likes || 0} likes</div><span className="openRecipeHint">Click para ver paso a paso</span></div></button>)}</div>
       </section>
+
+      {selectedRecipe && <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />}
     </main>
   );
 }

@@ -1,4 +1,4 @@
-﻿const API_URL = import.meta.env.VITE_API_URL || 'http://10.180.28.40:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://10.180.28.40:8000';
 const MEALDB = 'https://www.themealdb.com/api/json/v1/1';
 
 const TRANSLATIONS = {
@@ -85,7 +85,9 @@ async function fetchMealDbRecipes({ ingredients, cuisine }) {
       ingredientes_faltantes: faltantes,
       fuente: 'TheMealDB',
       area: meal.strArea,
-      categoria: meal.strCategory
+      categoria: meal.strCategory,
+      instrucciones: meal.strInstructions,
+      url: meal.strSource || meal.strYoutube
     };
   });
 
@@ -111,6 +113,7 @@ function localFallback(ingredients, tools) {
       ingredientes_usados: recipe.base.filter((item) => available.has(item)).slice(0, 4),
       ingredientes_faltantes: recipe.faltantes,
       utensilio_faltante: tools.length ? null : 'Agrega utensilios para mejores recomendaciones',
+      instrucciones: 'Prepara todos los ingredientes. Cocina la base principal en una olla o sarten caliente. Agrega verduras y condimentos al gusto. Ajusta sal, revisa coccion y sirve caliente.',
       modo_demo_local: true
     })),
     total: LOCAL_RECIPES.length,

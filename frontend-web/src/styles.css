@@ -127,3 +127,36 @@ h1 { margin: 0; font-size: clamp(34px, 4.25vw, 62px); line-height: 0.98; max-wid
 .dockHeader .panelAction { margin-left: auto; width: 30px; height: 30px; }
 .drawerToggle { box-shadow: 0 10px 30px rgba(0,0,0,0.22); }
 .ingredientDrawer, .recipePanel, .countryDock { will-change: transform; }
+
+.recipeCard { width: 100%; text-align: left; cursor: pointer; appearance: none; font: inherit; }
+.recipeCard:hover { transform: translateY(-1px); box-shadow: 0 14px 34px rgba(0,0,0,0.28); }
+.recipeCard:focus-visible { outline: 3px solid var(--glow); outline-offset: 3px; }
+.openRecipeHint { display: inline-flex; margin-top: 10px; color: #153b2d; font-size: 12px; font-weight: 900; }
+.recipeModalLayer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(1, 5, 15, 0.68); backdrop-filter: blur(10px); }
+.recipeModal { position: relative; width: min(820px, calc(100vw - 32px)); max-height: min(88vh, 820px); overflow: auto; border-radius: 12px; background: #f8faf8; color: #12231f; box-shadow: 0 24px 80px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.2); }
+.modalClose { position: sticky; top: 12px; float: right; z-index: 2; width: 42px; height: 42px; margin: 12px 12px 0 0; border: 1px solid rgba(17, 31, 38, 0.16); border-radius: 10px; display: grid; place-items: center; color: #12231f; background: rgba(255,255,255,0.9); cursor: pointer; }
+.modalClose:hover { background: #fff; }
+.modalHero { width: 100%; height: 260px; object-fit: cover; display: block; }
+.modalBody { padding: 22px; }
+.modalEyebrow { color: #1e6f57; }
+.modalBody h2 { margin: 0; color: #12231f; font-size: clamp(26px, 3vw, 38px); line-height: 1.04; }
+.modalStats { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 18px; }
+.modalStats span { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 7px 10px; background: #e8f2ed; color: #1e6f57; font-weight: 900; font-size: 13px; }
+.modalColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 14px 0 18px; }
+.modalColumns > div { border: 1px solid #d8e3df; border-radius: 10px; background: #fff; padding: 14px; }
+.modalColumns h3, .stepsTitle { margin: 0 0 10px; display: flex; align-items: center; gap: 7px; color: #12231f; font-size: 16px; }
+.modalTags { display: flex; flex-wrap: wrap; gap: 7px; }
+.modalTags span { border-radius: 999px; padding: 7px 9px; color: #153b2d; background: #edf7f1; font-size: 12px; font-weight: 900; }
+.modalTags.warning span { color: #7b4a00; background: #fff2d2; }
+.modalWarning { color: #7b4a00; background: #fff2d2; border-radius: 10px; padding: 12px; font-weight: 900; }
+.recipeSteps { margin: 0; padding-left: 24px; display: grid; gap: 10px; color: #2f403b; line-height: 1.46; }
+.recipeSteps li::marker { color: #1e6f57; font-weight: 900; }
+.sourceLink { display: inline-flex; margin-top: 18px; border-radius: 10px; padding: 11px 14px; color: #fff; background: #153b2d; text-decoration: none; font-weight: 900; }
+
+@media (max-width: 680px) {
+  .recipeModalLayer { padding: 12px; align-items: end; }
+  .recipeModal { width: 100%; max-height: 92vh; border-radius: 12px 12px 0 0; }
+  .modalHero { height: 190px; }
+  .modalBody { padding: 18px; }
+  .modalColumns { grid-template-columns: 1fr; }
+}
