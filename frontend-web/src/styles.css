@@ -1,4 +1,4 @@
-﻿* { box-sizing: border-box; }
+* { box-sizing: border-box; }
 html, body, #root { margin: 0; min-height: 100%; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 body { overflow-x: hidden; }
 button, input { font: inherit; }
@@ -28,6 +28,9 @@ h1 { margin: 0; font-size: clamp(34px, 4.25vw, 62px); line-height: 0.98; max-wid
 .globeShell { position: fixed; inset: 0; z-index: 1; }
 .globeMount { width: 100%; height: 100%; cursor: grab; }
 .globeMount:active { cursor: grabbing; }
+.mapLanguageControl { position: fixed; top: 24px; right: 158px; z-index: 14; width: 58px; height: 58px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.28); display: grid; place-items: center; color: #102033; background: rgba(255,255,255,0.92); cursor: pointer; box-shadow: 0 12px 32px rgba(0,0,0,0.2); backdrop-filter: blur(12px); }
+.mapLanguageControl span { font-size: 10px; font-weight: 1000; line-height: 1; margin-top: -9px; }
+.mapLanguageControl:hover { background: #fff; transform: translateY(-1px); }
 .mapHint { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 5; display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: 8px; color: rgba(255,255,255,0.84); background: rgba(3,8,20,0.44); border: 1px solid rgba(255,255,255,0.16); backdrop-filter: blur(12px); }
 
 .mealSlider { position: fixed; right: 22px; top: 50%; transform: translateY(-50%); width: 102px; min-height: 472px; z-index: 10; padding: 14px 12px; border-radius: 8px; background: rgba(3,8,20,0.58); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(16px); display: grid; justify-items: center; gap: 12px; }
@@ -109,7 +112,10 @@ h1 { margin: 0; font-size: clamp(34px, 4.25vw, 62px); line-height: 0.98; max-wid
   .recipePanel { position: relative; right: auto; top: auto; bottom: auto; width: auto; margin: 14px 96px 18px 14px; transform: none; display: none; }
   .recipePanel.open { display: block; }
   .mealSlider { right: 10px; min-height: 420px; width: 78px; }
-  .mapHint { position: relative; left: auto; bottom: auto; transform: none; margin: 8px 96px 8px 14px; justify-content: center; }
+  .mapLanguageControl { position: fixed; top: 24px; right: 158px; z-index: 14; width: 58px; height: 58px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.28); display: grid; place-items: center; color: #102033; background: rgba(255,255,255,0.92); cursor: pointer; box-shadow: 0 12px 32px rgba(0,0,0,0.2); backdrop-filter: blur(12px); }
+.mapLanguageControl span { font-size: 10px; font-weight: 1000; line-height: 1; margin-top: -9px; }
+.mapLanguageControl:hover { background: #fff; transform: translateY(-1px); }
+.mapHint { position: relative; left: auto; bottom: auto; transform: none; margin: 8px 96px 8px 14px; justify-content: center; }
 }
 
 .dragHandle { cursor: grab; user-select: none; }
@@ -160,3 +166,40 @@ h1 { margin: 0; font-size: clamp(34px, 4.25vw, 62px); line-height: 0.98; max-wid
   .modalBody { padding: 18px; }
   .modalColumns { grid-template-columns: 1fr; }
 }
+
+.modalActions { position: sticky; top: 12px; z-index: 4; float: right; display: inline-flex; gap: 8px; margin: 12px 12px 0 0; }
+.languageToggle { width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(17, 31, 38, 0.16); display: grid; place-items: center; color: #12231f; background: rgba(255,255,255,0.94); cursor: pointer; box-shadow: 0 10px 28px rgba(0,0,0,0.16); }
+.languageToggle span { font-size: 10px; font-weight: 1000; line-height: 1; margin-top: -8px; }
+.languageToggle:hover { background: #fff; transform: translateY(-1px); }
+.modalActions .modalClose { position: static; float: none; margin: 0; border-radius: 50%; width: 52px; height: 52px; box-shadow: 0 10px 28px rgba(0,0,0,0.16); }
+.buySection { margin-top: 22px; padding: 16px; border-radius: 12px; background: #ffffff; border: 1px solid #d8e3df; }
+.buyHeader { display: flex; gap: 10px; align-items: flex-start; color: #153b2d; margin-bottom: 12px; }
+.buyHeader h3 { margin: 0 0 3px; font-size: 17px; }
+.buyHeader p { margin: 0; color: #526b61; font-size: 13px; line-height: 1.35; }
+.buyMessage { margin: 8px 0 0; color: #526b61; font-weight: 800; }
+.buyGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.buyCard { border: 1px solid #e1e9e5; border-radius: 10px; background: #f8fbf9; padding: 12px; }
+.buyCardTitle { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.buyCardTitle strong { color: #12231f; overflow-wrap: anywhere; }
+.buyCardTitle a { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 7px 10px; background: #153b2d; color: #fff; text-decoration: none; font-size: 12px; font-weight: 900; white-space: nowrap; }
+.storeFallback { margin: 9px 0 0; color: #526b61; font-size: 13px; line-height: 1.35; }
+.storeRow { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid #e5ece8; }
+.storeRow:first-of-type { border-top: 0; }
+.storeRow strong, .storeRow span, .storeRow em { display: block; }
+.storeRow span { color: #526b61; font-size: 12px; margin-top: 2px; }
+.storeRow em { color: #7b4a00; font-size: 12px; margin-top: 3px; font-style: normal; }
+.storeRow small { color: #1e6f57; font-weight: 900; white-space: nowrap; }
+
+@media (max-width: 680px) {
+  .modalActions { top: 8px; margin: 8px 8px 0 0; }
+  .languageToggle, .modalActions .modalClose { width: 46px; height: 46px; }
+  .buyGrid { grid-template-columns: 1fr; }
+}.recipeSource { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.recipeSource span, .recipeSource strong { border-radius: 999px; padding: 5px 8px; font-size: 11px; font-weight: 1000; line-height: 1; }
+.recipeSource span { color: #153b2d; background: #e8f2ed; }
+.recipeSource strong { color: #17436a; background: #e8f0fb; }
+.drinkCard { border-color: rgba(86, 190, 255, 0.45); }
+.drinkCard .recipeSource span { color: #11395c; background: #e4f4ff; }
+.drinkCard .score { color: #12608f; }.trendCard { border-color: rgba(255, 190, 80, 0.5); }
+.trendCard .recipeSource span { color: #6b4300; background: #fff2d2; }
+.trendCard .score { color: #8a4f00; }

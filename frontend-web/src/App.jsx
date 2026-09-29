@@ -8,17 +8,20 @@ import {
   Compass,
   Globe2,
   GripVertical,
+  Languages,
   Layers3,
   MapPin,
+  Navigation,
   Moon,
   Rotate3D,
   Search,
+  ShoppingBasket,
   SunMedium,
   Utensils,
   X
 } from 'lucide-react';
 
-import { fetchRecipes } from './api';
+import { fetchRecipes, mapsSearchUrl, translateIngredient, translateRecipeText } from './api';
 import Globe from './components/Globe';
 import { CATALOG_NOTE, INGREDIENT_CATEGORIES } from './data/ingredients';
 import { DEFAULT_TOOLS, TOOL_CATEGORIES } from './data/tools';
@@ -58,9 +61,9 @@ function useDragVars() {
   return { style: { '--dx': `${offset.x}px`, '--dy': `${offset.y}px` }, startDrag };
 }
 
-function recipeSteps(recipe) {
+function recipeSteps(recipe, language = 'es') {
   const raw = recipe?.instrucciones || recipe?.instructions || '';
-  if (!raw.trim()) return ['La API no incluyo instrucciones completas para esta receta. Usa los ingredientes listados como base y ajusta la preparacion a tu cocina.'];
+  if (!raw.trim()) return [language === 'es' ? 'La API no incluyo instrucciones completas para esta receta. Usa los ingredientes listados como base y ajusta la preparacion a tu cocina.' : 'The API did not include full instructions for this recipe. Use the listed ingredients as a base and adjust the preparation to your kitchen.'];
   return raw
     .replace(/\r/g, '\n')
     .split(/\n+/)
@@ -68,40 +71,61 @@ function recipeSteps(recipe) {
     .map((step) => step.trim())
     .filter(Boolean)
     .map((step) => /[.!?]$/.test(step) ? step : `${step}.`)
-    .slice(0, 14);
+    .slice(0, 14)
+    .map((step) => translateRecipeText(step, language));
 }
 
-function RecipeModal({ recipe, onClose }) {
-  const steps = recipeSteps(recipe);
+function RecipeModal({ recipe, language, onClose }) {
+  const steps = recipeSteps(recipe, language);
   const used = recipe.ingredientes_usados || [];
   const missing = recipe.ingredientes_faltantes || [];
+  const label = (es, en) => language === 'es' ? es : en;
+  const localizeIngredient = (item) => translateIngredient(item, language);
+  const localizedTitle = language === 'es' ? translateRecipeText(recipe.titulo, language) : recipe.titulo;
 
   return (
     <div className="recipeModalLayer" role="presentation" onMouseDown={onClose}>
       <section className="recipeModal" role="dialog" aria-modal="true" aria-label={`Paso a paso de ${recipe.titulo}`} onMouseDown={(event) => event.stopPropagation()}>
-        <button className="modalClose" type="button" onClick={onClose} aria-label="Cerrar receta"><X size={20} /></button>
+        <div className="modalActions">
+          <button className="modalClose" type="button" onClick={onClose} aria-label="Cerrar receta"><X size={20} /></button>
+        </div>
         {recipe.imagen && <img className="modalHero" src={recipe.imagen} alt={recipe.titulo} />}
         <div className="modalBody">
           <p className="eyebrow modalEyebrow">{recipe.fuente || recipe.area || 'receta'}</p>
-          <h2>{recipe.titulo}</h2>
+          <h2>{localizedTitle}</h2>
           <div className="modalStats"><span><MapPin size={14} /> {Math.round(recipe.calificacion || 0)} pts</span><span>{recipe.likes || 0} likes</span>{recipe.categoria && <span>{recipe.categoria}</span>}</div>
 
           <div className="modalColumns">
             <div>
-              <h3><Utensils size={16} /> Usa</h3>
-              <div className="modalTags">{used.length ? used.map((item) => <span key={item}>{item}</span>) : <span>Ver pasos</span>}</div>
+              <h3><Utensils size={16} /> {label('Usa', 'Uses')}</h3>
+              <div className="modalTags">{used.length ? used.map((item) => <span key={item}>{localizeIngredient(item)}</span>) : <span>{label('Ver pasos', 'See steps')}</span>}</div>
             </div>
             <div>
-              <h3>Te falta</h3>
-              <div className="modalTags warning">{missing.length ? missing.map((item) => <span key={item}>{item}</span>) : <span>Nada importante</span>}</div>
+              <h3>{label('Te falta', 'Missing')}</h3>
+              <div className="modalTags warning">{missing.length ? missing.map((item) => <span key={item}>{localizeIngredient(item)}</span>) : <span>{label('Nada importante', 'Nothing important')}</span>}</div>
             </div>
           </div>
 
           {recipe.utensilio_faltante && <p className="modalWarning">{recipe.utensilio_faltante}</p>}
 
-          <h3 className="stepsTitle">Paso a paso</h3>
+          <h3 className="stepsTitle">{label('Paso a paso', 'Step by step')}</h3>
           <ol className="recipeSteps">{steps.map((step, index) => <li key={`${index}-${step.slice(0, 16)}`}>{step}</li>)}</ol>
-          {recipe.url && <a className="sourceLink" href={recipe.url} target="_blank" rel="noreferrer">Abrir fuente original</a>}
+
+          <section className="buySection" aria-label="Opciones de compra cercanas">
+            <div className="buyHeader"><ShoppingBasket size={18} /><div><h3>{label('Compra lo que falta', 'Buy missing ingredients')}</h3><p>{label('Abre Maps para ver tiendas cercanas a tu ubicacion.', 'Open Maps to see stores near your location.')}</p></div></div>
+            {missing.length ? (
+              <div className="buyGrid">
+                {missing.slice(0, 6).map((ingredient) => (
+                  <article className="buyCard" key={ingredient}>
+                    <div className="buyCardTitle"><strong>{localizeIngredient(ingredient)}</strong><a href={mapsSearchUrl({ ingredient })} target="_blank" rel="noreferrer"><Navigation size={14} /> Maps</a></div>
+                    <p className="storeFallback">{label('Busca supermercados, mercados o tiendas de abarrotes cerca de ti.', 'Search nearby supermarkets, markets, or grocery stores.')}</p>
+                  </article>
+                ))}
+              </div>
+            ) : <p className="buyMessage">{label('No faltan ingredientes importantes para esta receta.', 'No important ingredients are missing for this recipe.')}</p>}
+          </section>
+
+          {recipe.url && <a className="sourceLink" href={recipe.url} target="_blank" rel="noreferrer">{label('Abrir fuente original', 'Open original source')}</a>}
         </div>
       </section>
     </div>
@@ -122,16 +146,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [recipeLanguage, setRecipeLanguage] = useState('es');
   const ingredientDrag = useDragVars();
   const countryDrag = useDragVars();
   const recipeDrag = useDragVars();
   const meal = MEALS[mealIndex];
 
-  useEffect(() => {
-    setSelectedIngredients((current) => Array.from(new Set([...current, ...meal.ingredients])));
-  }, [mealIndex]);
-
-  const ingredients = useMemo(() => selectedIngredients.length ? selectedIngredients : ['tomate', 'cebolla', ...meal.ingredients], [selectedIngredients, meal]);
+  const ingredients = useMemo(() => selectedIngredients, [selectedIngredients]);
   const activeCategoryData = INGREDIENT_CATEGORIES.find((category) => category.id === activeCategory) || INGREDIENT_CATEGORIES[0];
   const activeToolData = TOOL_CATEGORIES.find((category) => category.id === activeToolCategory) || TOOL_CATEGORIES[0];
   const visibleIngredients = useMemo(() => {
@@ -146,7 +167,10 @@ export default function App() {
     setError('');
     fetchRecipes({ ingredients, tools: selectedTools, cuisine: selectedCountry.cuisine, strict: false })
       .then((data) => {
-        if (!cancelled) setRecipes(data.recetas || []);
+        if (!cancelled) {
+          setRecipes(data.recetas || []);
+          if (data.error && !(data.recetas || []).length) setError(data.error);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(`No se pudieron cargar recetas: ${err.message}`);
@@ -173,10 +197,10 @@ export default function App() {
     <main className="app" style={sceneStyle}>
       <section className="heroPanel">
         <div className="brandRow"><div className="brandMark"><Globe2 size={22} /></div><div><p className="eyebrow">Refri Inteligente Web</p><h1>Recetas por mundo, país y hora</h1></div></div>
-        <div className="statusGrid"><div><span>Zona elegida</span><strong>{selectedCountry.label}</strong></div><div><span>Momento</span><strong>{meal.label}</strong></div><div><span>Ingredientes activos</span><strong>{ingredients.slice(0, 5).join(', ')}{ingredients.length > 5 ? ` +${ingredients.length - 5}` : ''}</strong></div></div>
+        <div className="statusGrid"><div><span>Zona elegida</span><strong>{selectedCountry.label}</strong></div><div><span>Momento</span><strong>{meal.label}</strong></div><div><span>Ingredientes activos</span><strong>{ingredients.length ? `${ingredients.slice(0, 5).join(', ')}${ingredients.length > 5 ? ` +${ingredients.length - 5}` : ''}` : 'Ninguno'}</strong></div></div>
       </section>
 
-      <section className="globeShell" aria-label="Globo interactivo"><Globe countries={COUNTRY_POINTS} selectedCountry={selectedCountry} meal={meal} onSelectCountry={setSelectedCountry} /><div className="mapHint"><Rotate3D size={18} /> Arrastra para rotar. Toca un punto para elegir país.</div></section>
+      <section className="globeShell" aria-label="Globo interactivo"><Globe countries={COUNTRY_POINTS} selectedCountry={selectedCountry} meal={meal} onSelectCountry={setSelectedCountry} /><button className="mapLanguageControl" type="button" onClick={() => setRecipeLanguage((current) => current === 'es' ? 'en' : 'es')} aria-label="Cambiar idioma de recetas"><Languages size={22} /><span>{recipeLanguage === 'es' ? 'ES' : 'EN'}</span></button><div className="mapHint"><Rotate3D size={18} /> Arrastra para rotar. Toca un punto para elegir país.</div></section>
 
       <aside className="mealSlider" aria-label="Selector de comida"><div className="mealIcon">{meal.darkness > 0.4 ? <Moon size={20} /> : <SunMedium size={20} />}</div><input aria-label="Cambiar comida del día" type="range" min="0" max={MEALS.length - 1} step="1" value={mealIndex} onChange={(event) => setMealIndex(Number(event.target.value))} /><div className="mealReadout"><strong>{meal.label}</strong><span>{String(meal.hour).padStart(2, '0')}:00</span></div><div className="mealTicks">{MEALS.map((item, index) => <button key={item.id} className={index === mealIndex ? 'active' : ''} onClick={() => setMealIndex(index)} title={item.label}>{item.short}</button>)}</div></aside>
 
@@ -200,10 +224,10 @@ export default function App() {
       <section className={recipesOpen ? 'recipePanel open' : 'recipePanel'} style={recipeDrag.style}>
         <div className="panelTitle dragHandle" onMouseDown={recipeDrag.startDrag} onTouchStart={recipeDrag.startDrag}><div><p className="eyebrow">{selectedCountry.cuisine || 'sin filtro de país'}</p><h2>{meal.label} para {selectedCountry.label.toLowerCase()}</h2></div><div className="titleTools"><GripVertical size={22} /><button className="panelAction" onClick={() => setRecipesOpen(false)} aria-label="Ocultar recetas"><ChevronRight size={18} /></button></div></div>
         {loading && <p className="muted">Buscando recetas...</p>}{error && <p className="error">{error}</p>}
-        <div className="cards">{recipes.map((recipe) => <button type="button" className="recipeCard" key={recipe.id} onClick={() => setSelectedRecipe(recipe)} aria-label={`Abrir paso a paso de ${recipe.titulo}`}>{recipe.imagen && <img src={recipe.imagen} alt={recipe.titulo} />}<div className="recipeBody"><h3>{recipe.titulo}</h3><p><Utensils size={14} /> Usa: {(recipe.ingredientes_usados || []).join(', ') || ingredients.join(', ')}</p>{(recipe.ingredientes_faltantes || []).length > 0 && <p className="missing">Te falta: {recipe.ingredientes_faltantes.join(', ')}</p>}{recipe.utensilio_faltante && <p className="missing">{recipe.utensilio_faltante}</p>}<div className="score"><MapPin size={14} /> {Math.round(recipe.calificacion || 0)} pts · {recipe.likes || 0} likes</div><span className="openRecipeHint">Click para ver paso a paso</span></div></button>)}</div>
+        <div className="cards">{recipes.map((recipe) => <button type="button" className={recipe.tipo === 'bebida' ? 'recipeCard drinkCard' : recipe.tendencia ? 'recipeCard trendCard' : 'recipeCard'} key={recipe.id} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setSelectedRecipe(recipe); }} aria-label={`Abrir paso a paso de ${recipe.titulo}`}>{recipe.imagen && <img src={recipe.imagen} alt={recipe.titulo} />}<div className="recipeBody"><div className="recipeSource"><span>{recipe.tipo === 'bebida' ? 'Bebida' : recipe.tendencia ? 'Facil / trend' : 'Receta'}</span><strong>{recipe.fuente || 'API'}</strong></div><h3>{recipe.titulo}</h3><p><Utensils size={14} /> Usa: {(recipe.ingredientes_usados || []).join(', ') || ingredients.join(', ')}</p>{(recipe.ingredientes_faltantes || []).length > 0 && <p className="missing">Te falta: {recipe.ingredientes_faltantes.join(', ')}</p>}{recipe.utensilio_faltante && <p className="missing">{recipe.utensilio_faltante}</p>}<div className="score"><MapPin size={14} /> {Math.round(recipe.calificacion || 0)} pts · {recipe.likes || 0} likes</div><span className="openRecipeHint">Click para ver paso a paso</span></div></button>)}</div>
       </section>
 
-      {selectedRecipe && <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />}
+      {selectedRecipe && <RecipeModal recipe={selectedRecipe} language={recipeLanguage} onClose={() => setSelectedRecipe(null)} />}
     </main>
   );
 }

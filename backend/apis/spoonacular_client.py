@@ -12,50 +12,6 @@ logger = get_logger(__name__)
 
 BASE_URL = "https://api.spoonacular.com"
 
-DEMO_RECIPES = [
-    {
-        "id": 900001,
-        "titulo": "Tacos caseros de pollo",
-        "imagen": "https://img.spoonacular.com/recipes/715538-312x231.jpg",
-        "calificacion": 91,
-        "likes": 248,
-        "ingredientes_principales": ["pollo", "tomate", "cebolla", "chile"],
-        "ingredientes_faltantes_base": ["tortilla", "cilantro", "limon"],
-        "equipo": ["sarten", "estufa de gas"],
-    },
-    {
-        "id": 900002,
-        "titulo": "Arroz con verduras",
-        "imagen": "https://img.spoonacular.com/recipes/716429-312x231.jpg",
-        "calificacion": 86,
-        "likes": 173,
-        "ingredientes_principales": ["arroz", "zanahoria", "cebolla", "papa"],
-        "ingredientes_faltantes_base": ["ajo"],
-        "equipo": ["olla", "estufa de gas"],
-    },
-    {
-        "id": 900003,
-        "titulo": "Salsa fresca de tomate",
-        "imagen": "https://img.spoonacular.com/recipes/654959-312x231.jpg",
-        "calificacion": 82,
-        "likes": 119,
-        "ingredientes_principales": ["tomate", "cebolla", "chile", "limon"],
-        "ingredientes_faltantes_base": ["cilantro"],
-        "equipo": ["licuadora"],
-    },
-    {
-        "id": 900004,
-        "titulo": "Papas con carne estilo casero",
-        "imagen": "https://img.spoonacular.com/recipes/632660-312x231.jpg",
-        "calificacion": 78,
-        "likes": 94,
-        "ingredientes_principales": ["papa", "carne", "cebolla", "tomate"],
-        "ingredientes_faltantes_base": ["ajo", "pimienta"],
-        "equipo": ["sarten", "estufa de gas"],
-    },
-]
-
-
 class SpoonacularClient:
     def __init__(self, api_key: str | None = None, session: requests.Session | None = None):
         self.api_key = api_key if api_key is not None else SPOONACULAR_API_KEY
@@ -88,7 +44,7 @@ class SpoonacularClient:
                     return recipes
             except Exception as exc:
                 logger.exception("TheMealDB fallback failed: %s", exc)
-            return self._demo_search(clean_ingredients, strict=strict, number=number)
+            return []
 
         if cuisine:
             data = self._get(
@@ -145,50 +101,12 @@ class SpoonacularClient:
             )
         return normalized
 
-    def _demo_search(
-        self,
-        ingredients: list[str],
-        strict: bool = False,
-        number: int = 10,
-    ) -> list[dict[str, Any]]:
-        available = set(ingredients)
-        results = []
-        for recipe in DEMO_RECIPES:
-            required = set(recipe["ingredientes_principales"])
-            used = sorted(required & available)
-            missing_required = sorted(required - available)
-            if strict and missing_required:
-                continue
-            missing = sorted(set(missing_required) | set(recipe["ingredientes_faltantes_base"]))
-            if not strict:
-                missing = missing[:3]
-            results.append(
-                {
-                    "id": recipe["id"],
-                    "titulo": f"{recipe['titulo']} (demo)",
-                    "imagen": recipe["imagen"],
-                    "calificacion": recipe["calificacion"],
-                    "likes": recipe["likes"],
-                    "ingredientes_usados": used or list(recipe["ingredientes_principales"][:2]),
-                    "ingredientes_faltantes": [] if strict else missing,
-                    "missedIngredientCount": 0 if strict else len(missing),
-                    "modo_demo": True,
-                }
-            )
-        results.sort(key=lambda item: (len(item["ingredientes_usados"]), item["calificacion"]), reverse=True)
-        return results[:number]
-
     def analyzed_instructions(self, recipe_id: int) -> list[dict[str, Any]]:
         data = self._get(f"/recipes/{recipe_id}/analyzedInstructions", {})
         return data if isinstance(data, list) else []
 
     def equipment_for_recipe(self, recipe_id: int) -> list[str]:
-        if not self.api_key:
-            if str(recipe_id).startswith("themealdb-"):
-                return []
-            for recipe in DEMO_RECIPES:
-                if recipe["id"] == recipe_id:
-                    return recipe["equipo"]
+        if not self.api_key or str(recipe_id).startswith("themealdb-"):
             return []
 
         instructions = self.analyzed_instructions(recipe_id)
@@ -208,7 +126,7 @@ class SpoonacularClient:
             for ingredient in ingredients:
                 rows.append(
                     {
-                        "fuente": recipe.get("fuente") or ("spoonacular" if not recipe.get("modo_demo") else "spoonacular_demo"),
+                        "fuente": recipe.get("fuente") or "spoonacular",
                         "nombre_ingrediente": normalize_ingredient(ingredient),
                         "recipe_id": recipe["id"],
                         "titulo": recipe["titulo"],

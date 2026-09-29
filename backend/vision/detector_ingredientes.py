@@ -28,11 +28,8 @@ def _extract_json(text: str) -> dict[str, Any]:
 def analyze_kitchen_image(image_base64: str) -> dict[str, Any]:
     if not ANTHROPIC_API_KEY:
         return {
-            "ingredientes_detectados": ["tomate", "cebolla", "pollo"],
-            "utensilios_detectados": ["sarten", "olla"],
-            "confianza": "baja",
-            "modo_demo": True,
-            "mensaje": "Deteccion simulada: configura ANTHROPIC_API_KEY en .env para vision real.",
+            **EMPTY_RESULT,
+            "mensaje": "Configura ANTHROPIC_API_KEY en .env para vision real.",
         }
 
     client = Anthropic(api_key=ANTHROPIC_API_KEY)
